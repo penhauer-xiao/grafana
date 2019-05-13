@@ -198,7 +198,6 @@ export interface QueryEditorProps<
   TOptions extends DataSourceJsonData = DataSourceJsonData
 > {
   datasource: DSType;
-  queryType: QueryType;
   query: TQuery;
   onRunQuery: () => void;
   onChange: (value: TQuery) => void;
@@ -277,11 +276,6 @@ export interface DataQueryResponse {
   data: DataQueryResponseData[];
 }
 
-export enum QueryType {
-  Metrics = 'Metrics',
-  Logs = 'Logs',
-}
-
 export interface DataQuery {
   /**
    * A - Z
@@ -339,7 +333,6 @@ export interface DataQueryRequest<TQuery extends DataQuery = DataQuery> {
   intervalMs: number;
   maxDataPoints: number;
   scopedVars: ScopedVars;
-  queryType?: QueryType;
 
   // Request Timing
   startTime: number;
