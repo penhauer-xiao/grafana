@@ -61,6 +61,7 @@ interface StateProps {
   selectedDatasource: DataSourceSelectItem;
   splitted: boolean;
   refreshInterval: string;
+  hasLiveOption: boolean;
 }
 
 interface DispatchProps {
@@ -115,6 +116,7 @@ export class UnConnectedExploreToolbar extends PureComponent<Props, {}> {
       refreshInterval,
       onChangeTime,
       split,
+      hasLiveOption,
     } = this.props;
 
     return (
@@ -170,6 +172,7 @@ export class UnConnectedExploreToolbar extends PureComponent<Props, {}> {
                 onRefresh={this.onRunQuery}
                 value={refreshInterval}
                 tooltip="Refresh"
+                hasLiveOption={hasLiveOption}
               />
               {refreshInterval && <SetInterval func={this.onRunQuery} interval={refreshInterval} loading={loading} />}
             </div>
@@ -213,6 +216,7 @@ const mapStateToProps = (state: StoreState, { exploreId }: OwnProps): StateProps
     ? exploreDatasources.find(datasource => datasource.name === datasourceInstance.name)
     : undefined;
   const loading = graphIsLoading || logIsLoading || tableIsLoading;
+  const hasLiveOption = datasourceInstance && datasourceInstance.convertToStreamTargets ? true : false;
 
   return {
     datasourceMissing,
@@ -223,6 +227,7 @@ const mapStateToProps = (state: StoreState, { exploreId }: OwnProps): StateProps
     selectedDatasource,
     splitted,
     refreshInterval,
+    hasLiveOption,
   };
 };
 

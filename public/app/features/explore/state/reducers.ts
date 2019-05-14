@@ -54,6 +54,7 @@ import {
 import { updateLocation } from 'app/core/actions/location';
 import { LocationUpdate } from 'app/types';
 import TableModel from 'app/core/table_model';
+import { isLive } from '@grafana/ui/src/components/RefreshPicker/RefreshPicker';
 
 export const DEFAULT_RANGE = {
   from: 'now-6h',
@@ -175,9 +176,13 @@ export const itemReducer = reducerFactory<ExploreItemState>({} as ExploreItemSta
     filter: changeRefreshIntervalAction,
     mapper: (state, action): ExploreItemState => {
       const { refreshInterval } = action.payload;
+      const live = isLive(refreshInterval);
       return {
         ...state,
         refreshInterval: refreshInterval,
+        graphIsLoading: live ? true : false,
+        tableIsLoading: live ? true : false,
+        logIsLoading: live ? true : false,
       };
     },
   })
@@ -352,9 +357,10 @@ export const itemReducer = reducerFactory<ExploreItemState>({} as ExploreItemSta
   .addMapper({
     filter: querySuccessAction,
     mapper: (state, action): ExploreItemState => {
-      const { queryIntervals } = state;
+      const { queryIntervals, refreshInterval } = state;
       const { result, resultType, latency } = action.payload;
       const results = calculateResultsFromQueryTransactions(result, resultType, queryIntervals.intervalMs);
+      const live = isLive(refreshInterval);
 
       return {
         ...state,
@@ -362,9 +368,9 @@ export const itemReducer = reducerFactory<ExploreItemState>({} as ExploreItemSta
         tableResult: resultType === 'Table' ? results.tableResult : state.tableResult,
         logsResult: resultType === 'Logs' ? results.logsResult : state.logsResult,
         latency,
-        graphIsLoading: false,
-        logIsLoading: false,
-        tableIsLoading: false,
+        graphIsLoading: live ? true : false,
+        logIsLoading: live ? true : false,
+        tableIsLoading: live ? true : false,
         showingStartPage: false,
         update: makeInitialUpdateState(),
       };

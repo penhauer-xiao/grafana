@@ -591,7 +591,6 @@ function runQueriesForType(
           stopsActionCreator: stopSubscriptionAction,
         })
       );
-      return;
     }
 
     const datasourceId = datasourceInstance.meta.id;
