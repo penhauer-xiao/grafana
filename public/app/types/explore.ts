@@ -257,7 +257,10 @@ export interface ExploreItemState {
   update: ExploreUpdateState;
 
   queryErrors: DataQueryError[];
+
   latency: number;
+
+  isLive: boolean;
 }
 
 export interface ExploreUpdateState {

@@ -55,6 +55,8 @@ import { updateLocation } from 'app/core/actions/location';
 import { LocationUpdate } from 'app/types';
 import TableModel from 'app/core/table_model';
 import { isLive } from '@grafana/ui/src/components/RefreshPicker/RefreshPicker';
+import { subscriptionDataReceivedAction } from './epics';
+import { LogsModel, seriesDataToLogsModel } from 'app/core/logs_model';
 
 export const DEFAULT_RANGE = {
   from: 'now-6h',
@@ -108,6 +110,7 @@ export const makeExploreItemState = (): ExploreItemState => ({
   update: makeInitialUpdateState(),
   queryErrors: [],
   latency: 0,
+  isLive: false,
 });
 
 /**
@@ -183,6 +186,7 @@ export const itemReducer = reducerFactory<ExploreItemState>({} as ExploreItemSta
         graphIsLoading: live ? true : false,
         tableIsLoading: live ? true : false,
         logIsLoading: live ? true : false,
+        isLive: live,
       };
     },
   })
@@ -371,6 +375,28 @@ export const itemReducer = reducerFactory<ExploreItemState>({} as ExploreItemSta
         graphIsLoading: live ? true : false,
         logIsLoading: live ? true : false,
         tableIsLoading: live ? true : false,
+        showingStartPage: false,
+        update: makeInitialUpdateState(),
+      };
+    },
+  })
+  .addMapper({
+    filter: subscriptionDataReceivedAction,
+    mapper: (state, action): ExploreItemState => {
+      const { queryIntervals } = state;
+      const { data } = action.payload;
+      const newResults = seriesDataToLogsModel([data], queryIntervals.intervalMs);
+      const logsResult: LogsModel = state.logsResult
+        ? { ...state.logsResult, rows: newResults.rows.concat(state.logsResult.rows) }
+        : { hasUniqueLabels: false, rows: newResults.rows };
+      logsResult.rows = logsResult.rows.slice(0, 999);
+
+      return {
+        ...state,
+        logsResult,
+        graphIsLoading: true,
+        logIsLoading: true,
+        tableIsLoading: true,
         showingStartPage: false,
         update: makeInitialUpdateState(),
       };

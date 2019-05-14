@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { RawTimeRange, TimeRange, LogLevel, TimeZone, AbsoluteTimeRange, toUtc, dateTime } from '@grafana/ui';
 
 import { ExploreId, ExploreItemState } from 'app/types/explore';
-import { LogsModel, LogsDedupStrategy } from 'app/core/logs_model';
+import { LogsModel, LogsDedupStrategy, LogRowModel } from 'app/core/logs_model';
 import { StoreState } from 'app/types';
 
 import { toggleLogs, changeDedupStrategy, changeTime } from './state/actions';
@@ -35,9 +35,14 @@ interface LogsContainerProps {
   hiddenLogLevels: Set<LogLevel>;
   width: number;
   changeTime: typeof changeTime;
+  isLive: boolean;
 }
 
 export class LogsContainer extends PureComponent<LogsContainerProps> {
+  private liveEndDiv: HTMLDivElement = null;
+  private freshRows: LogRowModel[] = [];
+  private oldRows: LogRowModel[] = [];
+
   onChangeTime = (absRange: AbsoluteTimeRange) => {
     const { exploreId, timeZone, changeTime } = this.props;
     const range = {
@@ -47,6 +52,21 @@ export class LogsContainer extends PureComponent<LogsContainerProps> {
 
     changeTime(exploreId, range);
   };
+
+  componentDidUpdate(prevProps: LogsContainerProps) {
+    const prevRows: LogRowModel[] = prevProps.logsResult ? prevProps.logsResult.rows : [];
+    const rows: LogRowModel[] = this.props.logsResult ? this.props.logsResult.rows : [];
+    if (prevRows !== rows && this.props.isLive && this.liveEndDiv) {
+      this.liveEndDiv.scrollIntoView(false);
+      this.freshRows = rows.filter(row => !prevRows.includes(row)).sort((a, b) => a.timeEpochMs - b.timeEpochMs);
+      this.oldRows = prevRows.sort((a, b) => a.timeEpochMs - b.timeEpochMs);
+    }
+
+    if (prevRows === rows) {
+      this.freshRows = [];
+      this.oldRows = prevRows.sort((a, b) => a.timeEpochMs - b.timeEpochMs);
+    }
+  }
 
   onClickLogsButton = () => {
     this.props.toggleLogs(this.props.exploreId, this.props.showingLogs);
@@ -81,7 +101,36 @@ export class LogsContainer extends PureComponent<LogsContainerProps> {
       scanRange,
       width,
       hiddenLogLevels,
+      isLive,
     } = this.props;
+
+    if (isLive) {
+      return (
+        <div>
+          {this.oldRows.map((row, index) => {
+            return (
+              <div className="logs-row old" key={`${row.timeEpochMs}-${index}`}>
+                <div className="logs-row__localtime" title={`${row.timestamp} (${row.timeFromNow})`}>
+                  {row.timeLocal}
+                </div>
+                <div className="logs-row__message">{row.entry}</div>
+              </div>
+            );
+          })}
+          {this.freshRows.map((row, index) => {
+            return (
+              <div className="logs-row fresh" key={`${row.timeEpochMs}-${index}`}>
+                <div className="logs-row__localtime" title={`${row.timestamp} (${row.timeFromNow})`}>
+                  {row.timeLocal}
+                </div>
+                <div className="logs-row__message">{row.entry}</div>
+              </div>
+            );
+          })}
+          <div ref={element => (this.liveEndDiv = element)} />
+        </div>
+      );
+    }
 
     return (
       <Panel label="Logs" loading={loading} isOpen={showingLogs} onToggle={this.onClickLogsButton}>
@@ -113,7 +162,7 @@ export class LogsContainer extends PureComponent<LogsContainerProps> {
 function mapStateToProps(state: StoreState, { exploreId }) {
   const explore = state.explore;
   const item: ExploreItemState = explore[exploreId];
-  const { logsHighlighterExpressions, logsResult, logIsLoading, scanning, scanRange, range } = item;
+  const { logsHighlighterExpressions, logsResult, logIsLoading, scanning, scanRange, range, isLive } = item;
   const loading = logIsLoading;
   const { showingLogs, dedupStrategy } = exploreItemUIStateSelector(item);
   const hiddenLogLevels = new Set(item.hiddenLogLevels);
@@ -132,6 +181,7 @@ function mapStateToProps(state: StoreState, { exploreId }) {
     dedupStrategy,
     hiddenLogLevels,
     dedupedResult,
+    isLive,
   };
 }
 
