@@ -360,4 +360,4 @@ export default hot(module)(
     mapStateToProps,
     mapDispatchToProps
   )(Explore)
-);
+) as React.ComponentType<{ exploreId: ExploreId }>;
